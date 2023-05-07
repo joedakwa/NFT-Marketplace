@@ -6,13 +6,13 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ComNft.sol";
 
-contract ArtDMarketplace is Ownable, ReentrancyGuard {
+contract ComNftMarketplace is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
     Counters.Counter private _itemIds;
     Counters.Counter private _itemsSold;
     Counters.Counter private _itemsCancelled;
     uint256 listingPrice = 5000000000000000;
-    ArtDodger private artD;
+    ComNft private comnft;
 
     enum MarketItemStatus {
         Active,
@@ -20,12 +20,12 @@ contract ArtDMarketplace is Ownable, ReentrancyGuard {
         Cancelled
     }
 
-    constructor(address ArtDAddress) {
-        artD = ArtDodger(ArtDAddress);
+    constructor(address ComNftAddress) {
+        comnft = ComNFT(ComNftAddress);
     }
 
-    function setArtD(address ArtDAddress) public onlyOwner returns (bool) {
-        artD = ArtDodger(ArtDAddress);
+    function setcomnft(address comnftAddress) public onlyOwner returns (bool) {
+        comnft = ComNft(comnftAddress);
         return true;
     }
 
@@ -71,7 +71,7 @@ contract ArtDMarketplace is Ownable, ReentrancyGuard {
 
     modifier OnlyItemOwner(uint256 tokenId) {
         require(
-            artD.ownerOf(tokenId) == msg.sender,
+            comnft.ownerOf(tokenId) == msg.sender,
             "Sender does not own the item"
         );
         _;
@@ -79,7 +79,7 @@ contract ArtDMarketplace is Ownable, ReentrancyGuard {
 
     modifier HasTransferApproval(uint256 tokenId) {
         require(
-            artD.isApprovedForAll(_msgSender(), address(this)),
+            comnft.isApprovedForAll(_msgSender(), address(this)),
             "Market is not approved"
         );
         _;
@@ -106,7 +106,7 @@ contract ArtDMarketplace is Ownable, ReentrancyGuard {
             msg.value == listingPrice,
             "Price must be equal to listing price"
         );
-        artD.transferFrom(msg.sender, address(this), tokenId);
+        comnft.transferFrom(msg.sender, address(this), tokenId);
 
         _itemIds.increment();
 
@@ -160,7 +160,7 @@ contract ArtDMarketplace is Ownable, ReentrancyGuard {
         }
 
         payable(idToMarketItem_.seller).transfer(msg.value - royaltyAmount);
-        artD.transferFrom(address(this), msg.sender, tokenId);
+        comnft.transferFrom(address(this), msg.sender, tokenId);
         payable(owner()).transfer(listingPrice);
         idToMarketItem_.owner = payable(msg.sender);
         idToMarketItem_.status = MarketItemStatus.Sold;
@@ -180,7 +180,7 @@ contract ArtDMarketplace is Ownable, ReentrancyGuard {
         view
         returns (address receiver, uint256 royaltyAmount)
     {
-        (receiver, royaltyAmount) = artD.royaltyInfo(tokenId, price);
+        (receiver, royaltyAmount) = comnft.royaltyInfo(tokenId, price);
         if (receiver == address(0) || royaltyAmount == 0) {
             return (address(0), 0);
         }
@@ -201,7 +201,7 @@ contract ArtDMarketplace is Ownable, ReentrancyGuard {
         idToMarketItem_.status = MarketItemStatus.Cancelled;
         _itemsCancelled.increment();
         idToMarketItem_.seller.transfer(listingPrice);
-        artD.transferFrom(address(this), msg.sender, idToMarketItem_.tokenId);
+        comnft.transferFrom(address(this), msg.sender, idToMarketItem_.tokenId);
 
         emit MarketItemCreated(
             itemId,
